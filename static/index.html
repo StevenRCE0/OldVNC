@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Old VNC</title>
+    <style>
+        body {
+            width: 100%;
+            margin: 0;
+            background-color: #000;
+            white-space: nowrap;
+        }
+        * {
+            vertical-align: middle;
+        }
+        .container {
+            position: relative;
+            height: 100vh;
+            width: 42.9vh;
+            /* hardcoded proportion for compatibility */
+            max-width: 100%;
+            max-height: 100%;
+        }
+        #vnc-snapshot {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .grid-table {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            pointer-events: none;
+        }
+        .grid-cell {
+            border: 1px solid rgba(120, 120, 120, 0.05); 
+            pointer-events: auto; /* Allow clicks to pass through the grid cells */
+        }
+        .input-container {
+            margin: 10px;
+            padding: 10px;
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 60%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        div {
+            display: inline-block;
+        }
+    </style>
+    <script>
+        function updateImage() {
+            var img = document.getElementById("vnc-snapshot");
+            img.src = "/snapshot.png?" + new Date().getTime();  // Adding timestamp to avoid caching
+        }
+
+        function sendControl(fractionalX, fractionalY) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/control", true);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.send(JSON.stringify({ x: fractionalX, y: fractionalY }));
+        }
+
+        function sendString(event) {
+            event.preventDefault();
+            var inputField = document.getElementById("input-string");
+            var stringToSend = inputField.value;
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/send_string", true);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.send(JSON.stringify({ text: stringToSend }));
+
+            // clear the input field
+            inputField.value = "";
+        }
+
+        function onGridClick(event) {
+            const cell = event.target;
+            const column = Number(cell.dataset.column) + 0.5;
+            const row = Number(cell.dataset.row) + 0.5;
+
+            if (column !== undefined && row !== undefined) {
+                const fractionalX = column / 20;  // Adjusted for 20 columns
+                const fractionalY = row / 40;  // Adjusted for 40 rows
+                
+                sendControl(fractionalX, fractionalY);
+            }
+        }
+
+        function adjustGridSize() {
+            const img = document.getElementById("vnc-snapshot");
+            const gridTable = document.querySelector('.grid-table');
+            const imgRect = img.getBoundingClientRect();
+            gridTable.style.width = imgRect.width + 'px';
+            gridTable.style.height = imgRect.height + 'px';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const gridTable = document.querySelector('.grid-table');
+            gridTable.addEventListener('click', onGridClick);
+
+            const img = document.getElementById("vnc-snapshot");
+            img.addEventListener('load', adjustGridSize);
+            window.addEventListener('resize', adjustGridSize);
+
+            updateImage();
+            setInterval(updateImage, 1000);  // Update every second
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <img id="vnc-snapshot" src="/snapshot.png" alt="VNC Snapshot">
+        <table class="grid-table">
+            <script>
+                const table = document.querySelector('.grid-table');
+                const columns = 20; // 20 columns
+                const rows = 40; // 40 rows
+                for (var row = 0; row < rows; row++) {
+                    const tr = document.createElement('tr');
+                    for (var col = 0; col < columns; col++) {
+                        const td = document.createElement('td');
+                        td.className = 'grid-cell';
+                        td.dataset.column = col;
+                        td.dataset.row = row;
+                        tr.appendChild(td);
+                    }
+                    table.appendChild(tr);
+                }
+            </script>
+        </table>
+    </div>
+    <div class="input-container">
+        <form onsubmit="sendString(event)">
+            <input type="text" id="input-string" placeholder="Type a string to send">
+            <button type="submit">Send String</button>
+        </form>
+    </div>
+</body>
+</html>
