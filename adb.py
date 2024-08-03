@@ -1,5 +1,4 @@
 import cgi
-import datetime
 import os
 import json
 import subprocess
@@ -20,6 +19,8 @@ def parse_args():
                         help="Port for the HTTP server")
     parser.add_argument("--device", type=str, required=True,
                         help="ADB device name")
+    parser.add_argument("--frac", type=float, required=False, default="0.5",
+                        help="Fractured screen resolution")
     return parser.parse_args()
 
 def create_snapshot_dir(snapshot_dir):
@@ -88,6 +89,8 @@ class AutoJSHandler(BaseHTTPRequestHandler):
 
             with Image.open(snapshot_path) as img:
                 screen_width, screen_height = img.size
+                screen_height /= args.frac
+                screen_width /= args.frac
 
             x = int(fractional_x * screen_width)
             y = int(fractional_y * screen_height)
@@ -179,6 +182,10 @@ def capture_autojs():
         subprocess.run(['./autojs.sh', args.device,
                        'screenshoot', snapshot_path])
         try:
+            # resize image to 0.5
+            img = cv2.imread(snapshot_path)
+            img = cv2.resize(img, (0, 0), fx=args.frac, fy=args.frac)
+            cv2.imwrite(snapshot_path, img)
             if calculate_similarity(snapshot_path, os.path.join(SNAPSHOT_DIR, 'snapshot.png')) < 0.9:
                 os.rename(snapshot_path, os.path.join(SNAPSHOT_DIR, 'snapshot.png'))
         except Exception as e:
