@@ -15,7 +15,7 @@
         .container {
             position: relative;
             height: 100vh;
-            width: 42.9vh;
+            width: 56.25vh;
             /* hardcoded proportion for compatibility */
             max-width: 100%;
             max-height: 100%;
@@ -106,6 +106,19 @@
             gridTable.style.height = imgRect.height + 'px';
         }
 
+        function sendImage(event) {
+            event.preventDefault();
+            var formData = new FormData();
+            var fileInput = document.getElementById("file");
+            var name = fileInput.files[0].name;
+            formData.append('name', name);
+            formData.append('file', fileInput.files[0]);
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/save_image", true);
+            xhr.setRequestHeader("enctype", "multipart/form-data");
+            xhr.send(formData);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const gridTable = document.querySelector('.grid-table');
             gridTable.addEventListener('click', onGridClick);
@@ -145,6 +158,11 @@
         <form onsubmit="sendString(event)">
             <input type="text" id="input-string" placeholder="Type a string to send">
             <button type="submit">Send String</button>
+        </form>
+        <br />
+        <form onsubmit="sendImage(event)">
+            <input id="file" type="file" name="file" accept="image/png, image/jpeg">
+            <button type="submit">Send Image</button>
         </form>
     </div>
 </body>
