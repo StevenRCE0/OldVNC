@@ -1,6 +1,6 @@
 #!/bin/bash
 dev=$1 # 需要修改成自己的设备 id, 使用 adb devices 获取
-img=/sdcard/capture.png
+img=/sdcard/capture.jpg
 save_image_path=/sdcard/DCIM/Old
 
 adbd(){
@@ -43,6 +43,8 @@ screenshoot(){
 
 save_image(){
     adbd push $1 $save_image_path
+    sleep 10
+    adbd shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file://$save_image_path/$2
 }
 
 # read parameter and run
@@ -66,7 +68,7 @@ case $2 in
         push
         ;;
     save_image)
-        save_image $3
+        save_image $3 $4
         ;;
     *)
         echo "Usage: $0 {device} {cleanup|unlock|screenshoot|tap|text|push|save_image}"

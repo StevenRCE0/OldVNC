@@ -35,11 +35,11 @@ class AutoJSHandler(BaseHTTPRequestHandler):
         return
 
     def do_GET(self):
-        if self.path.startswith('/snapshot.png'):
-            snapshot_path = os.path.join(SNAPSHOT_DIR, 'snapshot.png')
+        if self.path.startswith('/snapshot.jpg'):
+            snapshot_path = os.path.join(SNAPSHOT_DIR, 'snapshot.jpg')
             if os.path.exists(snapshot_path):
                 self.send_response(200)
-                self.send_header('Content-type', 'image/png')
+                self.send_header('Content-type', 'image/jpeg')
                 self.end_headers()
                 with open(snapshot_path, 'rb') as file:
                     self.wfile.write(file.read())
@@ -80,7 +80,7 @@ class AutoJSHandler(BaseHTTPRequestHandler):
                 return
 
             # Read the screen dimensions from the snapshot image
-            snapshot_path = os.path.join(SNAPSHOT_DIR, 'snapshot.png')
+            snapshot_path = os.path.join(SNAPSHOT_DIR, 'snapshot.jpg')
             if not os.path.exists(snapshot_path):
                 self.send_response(500)
                 self.end_headers()
@@ -139,7 +139,7 @@ class AutoJSHandler(BaseHTTPRequestHandler):
                 # Read the request body as multipart form data
                 fields = cgi.parse_multipart(self.rfile, pdict)
                 image_data = fields.get('file')[0]
-                image_name = fields.get('name')[0]
+                image_name = time.strftime("%H%M") + '-' + fields.get('name')[0]
             else:
                 self.send_response(400)
                 self.end_headers()
@@ -152,44 +152,25 @@ class AutoJSHandler(BaseHTTPRequestHandler):
             with open(image_path, 'wb') as file:
                 file.write(image_data)
 
-            subprocess.run(['./autojs.sh', args.device, 'save_image', image_path])
+            subprocess.run(['./autojs.sh', args.device, 'save_image', image_path, image_name])
 
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b'{"message": "Image received successfully"}')
 
 
-def calculate_similarity(frame1, frame2):
-    # Convert frames to grayscale
-    frame1 = cv2.imread(frame1)
-    frame2 = cv2.imread(frame2)
-    gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY).astype(np.float32)
-    gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY).astype(np.float32)
-
-    # Ensure both images have the same size
-    if gray1.shape != gray2.shape:
-        height, width = gray1.shape
-        gray2 = cv2.resize(gray2, (width, height))
-
-    # Calculate structural similarity index
-    similarity = cv2.compareHist(gray1, gray2, cv2.HISTCMP_CORREL)
-
-    return similarity
-
 def capture_autojs():
     while True:
-        snapshot_path = os.path.join(SNAPSHOT_DIR, 'snapshot-stack.png')
+        snapshot_path = os.path.join(SNAPSHOT_DIR, 'snapshot-stack.jpg')
         subprocess.run(['./autojs.sh', args.device,
                        'screenshoot', snapshot_path])
         try:
-            # resize image to 0.5
             img = cv2.imread(snapshot_path)
             img = cv2.resize(img, (0, 0), fx=args.frac, fy=args.frac)
-            cv2.imwrite(snapshot_path, img)
-            if calculate_similarity(snapshot_path, os.path.join(SNAPSHOT_DIR, 'snapshot.png')) < 0.9:
-                os.rename(snapshot_path, os.path.join(SNAPSHOT_DIR, 'snapshot.png'))
+            cv2.imwrite(os.path.join(
+                SNAPSHOT_DIR, 'snapshot.jpg'), img)
         except Exception as e:
-            # print(f'Error: {e}')
+            print(f'Error: {e}')
             pass
         time.sleep(INTERVAL)
 
@@ -207,7 +188,7 @@ def run(server_class=HTTPServer, handler_class=AutoJSHandler, host='0.0.0.0', po
 if __name__ == '__main__':
     args = parse_args()
     SNAPSHOT_DIR = 'snapshots'
-    INTERVAL = 3  # Capture interval in seconds
+    INTERVAL = 15  # Capture interval in seconds
     create_snapshot_dir(SNAPSHOT_DIR)
     push_autojs()
     threading.Thread(target=capture_autojs).start()
