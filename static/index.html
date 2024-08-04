@@ -48,11 +48,12 @@
                 margin: 10px;
                 width: 300px;
                 text-align: right;
+                padding-left: 10px;
+                padding-right: 10px;
             }
             input {
-                width: 300px;
-                padding: 10px;
-                font-size: 16px;
+                width: 100%;
+                font-size: 18px;
             }
             button {
                 width: 150px;
@@ -147,7 +148,7 @@
         </script>
     </head>
     <body>
-        <table class="top">
+        <table class="top" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="container">
                     <img
@@ -155,7 +156,7 @@
                         src="/snapshot.jpg"
                         alt="VNC Snapshot"
                     />
-                    <table class="grid-table">
+                    <table class="grid-table" cellspacing="0" cellpadding="0">
                         <script>
                             const table = document.querySelector('.grid-table');
                             const columns = 20; // 20 columns
